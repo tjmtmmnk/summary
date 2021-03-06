@@ -66,13 +66,6 @@ def get_important_words(evaled_word, bunsetu_spans):
     return evaled_word[-num:]
 
 
-def is_iword(iwords, bunsetu_token) -> bool:
-    for w in iwords:
-        if bunsetu_token.text.find(w[0]) != -1:
-            return True
-    return False
-
-
 test_data = get_test_data('testdata/19629300.txt')
 cand = []
 cnt = Counter()
