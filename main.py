@@ -5,6 +5,7 @@ import re
 import spacy
 from ginza import *
 from collections import defaultdict
+from typing import List
 
 jumanpp = Juman()
 nlp = spacy.load('ja_ginza')
@@ -46,14 +47,14 @@ def title_sim(title, sentences) -> str:
     return max(cand_sents, key=lambda x: x[1])
 
 
-def get_test_data(path) -> str:
+def get_test_data(path) -> List[str]:
     with open(path) as test_file:
         test_data = test_file.read()
         test_data = preprocess(test_data)
-        return test_data
+        return test_data.split("。")
 
 
-def is_meisi(mrph):
+def is_meisi(mrph) -> bool:
     return mrph.hinsi == "名詞" or mrph.imis.find("品詞推定:名詞") != -1
 
 
@@ -65,7 +66,7 @@ def get_important_words(evaled_word, bunsetu_spans):
     return evaled_word[-num:]
 
 
-def is_iword(iwords, bunsetu_token):
+def is_iword(iwords, bunsetu_token) -> bool:
     for w in iwords:
         if bunsetu_token.text.find(w[0]) != -1:
             return True
@@ -79,19 +80,21 @@ corpus_count = {}
 with open('count.json') as file:
     corpus_count = json.load(file)
 
-for s in test_data.split("。"):
+test_data_analysis = []
+for s in test_data:
     an = jumanpp.analysis(s)
+    test_data_analysis.append(an)
     for mrph in an.mrph_list():
         if is_meisi(mrph):
             cnt[mrph.midasi] += 1
 
 word = defaultdict(lambda: 0)
 cnt_sum = cnt.sum()
-for s in test_data.split("。"):
+for i, s in enumerate(test_data):
     if s == "":
         continue
     tfidf = 0
-    an = jumanpp.analysis(s)
+    an = test_data_analysis[i]
     for mrph in an.mrph_list():
         if is_meisi(mrph):
             if cnt_sum == 0:
