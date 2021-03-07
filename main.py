@@ -30,8 +30,10 @@ def preprocess(text) -> str:
     return text
 
 
+# most match sentence with title word
 def title_sim(title, sentences) -> str:
     title_word = []
+    title = preprocess(title)
     for mrph in jumanpp.analysis(title).mrph_list():
         if mrph.hinsi == "名詞":
             title_word.append(mrph.midasi)
@@ -44,14 +46,14 @@ def title_sim(title, sentences) -> str:
                 point += 1
         cand_sents.append([s, point])
 
-    return max(cand_sents, key=lambda x: x[1])
+    return max(cand_sents, key=lambda x: x[1])[0]
 
 
-def get_test_data(path) -> List[str]:
-    with open(path) as test_file:
-        test_data = test_file.read()
-        test_data = preprocess(test_data)
-        return test_data.split("。")
+def get_test_data(path) -> dict:
+    with open(path) as file:
+        test_data = json.load(file)
+        test_data["body"] = preprocess(test_data["body"]).split("。")
+        return test_data
 
 
 def is_meisi(mrph) -> bool:
@@ -66,7 +68,7 @@ def get_important_words(evaled_word, bunsetu_spans):
     return evaled_word[-num:]
 
 
-test_data = get_test_data('testdata/19629300.txt')
+test_data = get_test_data('testdata/live_call_19476322.json')
 cand = []
 cnt = Counter()
 corpus_count = {}
@@ -74,7 +76,7 @@ with open('count.json') as file:
     corpus_count = json.load(file)
 
 test_data_analysis = []
-for s in test_data:
+for s in test_data["body"]:
     an = jumanpp.analysis(s)
     test_data_analysis.append(an)
     for mrph in an.mrph_list():
@@ -83,7 +85,7 @@ for s in test_data:
 
 word = defaultdict(lambda: 0)
 cnt_sum = cnt.sum()
-for i, s in enumerate(test_data):
+for i, s in enumerate(test_data["body"]):
     if s == "":
         continue
     tfidf = 0
@@ -115,3 +117,6 @@ for s in cand_sentences[-summary_count:]:
 
 for i, s in enumerate(summary_list):
     print(str(i) + ". " + s)
+
+print('-------------')
+print("タイトルに最も一致する一文 : ", title_sim(test_data["title"], test_data["body"]))
