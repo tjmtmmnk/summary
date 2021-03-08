@@ -1,4 +1,3 @@
-import xml.etree.ElementTree as ET
 from pyknp import Juman
 import json
 import re
@@ -102,6 +101,8 @@ for i, s in enumerate(test_data["body"]):
 
 cand = sorted(cand, key=lambda x: x[1])
 cand_sentences = list(map(lambda x: x[0], cand))
+cand_sentences = cand_sentences[-summary_count:]
+cand_sentences.append(title_sim(test_data["title"], test_data["body"]))
 
 summary_list = []
 
@@ -116,7 +117,7 @@ for s in cand_sentences[-summary_count:]:
     summary_list.append(summary)
 
 for i, s in enumerate(summary_list):
-    print(str(i) + ". " + s)
-
-print('-------------')
-print("タイトルに最も一致する一文 : ", title_sim(test_data["title"], test_data["body"]))
+    if i < summary_count - 1:
+        print(str(i) + ". " + s)
+    else:
+        print("タイトルに最も一致する一文 : " + s)
