@@ -1,8 +1,8 @@
-from pyknp import Juman
 import json
 import re
 import spacy
-from ginza import *
+from pyknp import Juman
+from ginza import bunsetu, bunsetu_spans
 from collections import defaultdict
 from typing import List
 
@@ -30,7 +30,7 @@ def preprocess(text) -> str:
 
 
 # most match sentence with title word
-def title_sim(title, sentences) -> str:
+def title_similar_sentence(title, sentences) -> str:
     title_word = []
     title = preprocess(title)
     for mrph in jumanpp.analysis(title).mrph_list():
@@ -59,50 +59,38 @@ def is_meisi(mrph) -> bool:
     return mrph.hinsi == "名詞" or mrph.imis.find("品詞推定:名詞") != -1
 
 
-# increase word by length of bunsetu
-def get_important_words(evaled_word, bunsetu_spans):
-    num = len(bunsetu_spans) // 5
-    if num == 0:
-        num = 1
-    return evaled_word[-num:]
-
-
-test_data = get_test_data('testdata/live_call_19476322.json')
-cand = []
-cnt = Counter()
+test_data = get_test_data('testdata/mizuho_19805517.json')
+candidates = []
+test_count = Counter()
 corpus_count = {}
 with open('count.json') as file:
     corpus_count = json.load(file)
 
-test_data_analysis = []
+analysis_cache = []
 for s in test_data["body"]:
     an = jumanpp.analysis(s)
-    test_data_analysis.append(an)
+    analysis_cache.append(an)
     for mrph in an.mrph_list():
         if is_meisi(mrph):
-            cnt[mrph.midasi] += 1
+            test_count[mrph.midasi] += 1
 
-word = defaultdict(lambda: 0)
-cnt_sum = cnt.sum()
 for i, s in enumerate(test_data["body"]):
     if s == "":
         continue
     tfidf = 0
-    an = test_data_analysis[i]
+    an = analysis_cache[i]
     for mrph in an.mrph_list():
         if is_meisi(mrph):
-            if cnt_sum == 0:
-                cnt_sum = 1
-            tf = (cnt[mrph.midasi]) / cnt_sum
+            tf = (test_count[mrph.midasi]) / max(test_count.sum(), 1)
             idf = 1 / corpus_count.get(mrph.midasi, 10)
             tfidf += (tf*idf)
-            word[mrph.midasi] += tfidf
-    cand.append([s, tfidf])
+    candidates.append([s, tfidf])
 
-cand = sorted(cand, key=lambda x: x[1])
-cand_sentences = list(map(lambda x: x[0], cand))
+candidates = sorted(candidates, key=lambda x: x[1])
+cand_sentences = list(map(lambda x: x[0], candidates))
 cand_sentences = cand_sentences[-summary_count:]
-cand_sentences.append(title_sim(test_data["title"], test_data["body"]))
+cand_sentences.append(title_similar_sentence(
+    test_data["title"], test_data["body"]))
 
 summary_list = []
 
